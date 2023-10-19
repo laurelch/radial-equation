@@ -1,3 +1,4 @@
+# README for hydrogen_radial.c and quantum mechanics
 ## 1. Definitions
 
 Initialize with `xmin`, `dx`, `rmax`, `zeta/zmesh`.
@@ -56,15 +57,18 @@ Both `r` and `V(r)` in `pot.out` is determined after getting `Atomic Charge` bef
 
 ## References
 
+- webMathematica - Hydrogen [link](https://library.wolfram.com/webMathematica/Physics/Hydrogen.jsp)
+
 - hydrogen_radial.c [link](https://www.fisica.uniud.it/~giannozz/Didattica/MQ/Software/C/hydrogen_radial.c)
 
-- webMathematica [link](https://library.wolfram.com/webMathematica/Physics/Hydrogen.jsp)
+- Lecture notes "Numerical Methods in Quantum Mechanics" by Paolo Giannozzi [link](https://www.fisica.uniud.it/~giannozz/Corsi/MQ/LectureNotes/mq.pdf)
+
+- "Quantum Book" by Daniel V. Schroeder [link](https://physics.weber.edu/schroeder/quantum/QuantumBook.pdf)
 
 - Radial and Angular Parts of Atomic Orbitals [link](https://chem.libretexts.org/Bookshelves/Physical_and_Theoretical_Chemistry_Textbook_Maps/Supplemental_Modules_(Physical_and_Theoretical_Chemistry)/Quantum_Mechanics/10%3A_Multi-electron_Atoms/Radial_and_Angular_Parts_of_Atomic_Orbitals)
+
 - The Wavefunctions of a Rigid Rotator are Called Spherical Harmonics [link](https://chem.libretexts.org/Courses/Pacific_Union_College/Quantum_Chemistry/06%3A_The_Hydrogen_Atom/6.02%3A_The_Wavefunctions_of_a_Rigid_Rotator_are_Called_Spherical_Harmonics)
-- Quantum Book by Daniel V. Schroeder [link](https://physics.weber.edu/schroeder/quantum/QuantumBook.pdf)
 
 - Orbital Shapes - Energy Wave Theory [link](https://energywavetheory.com/atoms/orbital-shapes/)
 
 - The Radial Wavefunction Solutions - Quantum Mechanics UCSD [link](https://quantummechanics.ucsd.edu/ph130a/130_notes/node233.html)
-
