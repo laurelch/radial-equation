@@ -18,57 +18,32 @@
 #define MIN(a,b)   (((a) < (b)) ? (a) : (b))
 #define MAX(a,b)   (((a) > (b)) ? (a) : (b))
 
-int main(){
-    // std::cout<<"Test"<<std::endl;
-    /* Variables */
-    float *r, *y, *r2, *sqr, *v_pot;
-    int mesh;
-    float zeta, dx, rmax, xmin, zmesh, e;
-    int i, l, n;
-
-    zeta = 1.;
-    zmesh = zeta;
-    rmax = 100.;
-    xmin = -8.;
-    dx = 0.01;
-    mesh = (int)((log(zmesh*rmax)-xmin)/dx);
-    r = (float*)malloc((mesh+1)*sizeof(float));
+void do_mesh(float zeta, float xmin, float dx, float rmax, float* r){
+    float zmesh = zeta;
+    int mesh = (int)((log(zmesh*rmax)-xmin)/dx);
+    float *r2, *sqr;
     r2 = (float*)malloc((mesh+1)*sizeof(float));
     sqr = (float*)malloc((mesh+1)*sizeof(float));
-    v_pot = (float*)malloc((mesh+1)*sizeof(float));
-    std::cout<<"Main() start"<<std::endl;
-    do_mesh(mesh, zmesh, xmin, dx, rmax, r, sqr, r2);
-    init_pot(zeta, mesh, r, v_pot);
-    n = 2; l = 1;
-    solve_radial(n, l, zeta);
-    std::cout<<"Main() end"<<std::endl;
-}
-
-/* initialize the mesh */
-void do_mesh ( int mesh, float zmesh, float xmin, 
-	            float dx, float rmax, 
-	            float *r, float *sqr, float *r2){
-    /* Builtin functions */
-    // double log(double), exp(double), sqrt(double);
-    /* Local variables */
     int i;
     float x;
     /* initialize radial grid */
-    for (i = 0; i <= mesh; ++i ) {
-        x = xmin + dx * i;
-        r[i] = exp(x) / zmesh;
+    for(i = 0; i <= mesh; ++i){
+        x = xmin+dx*i;
+        r[i] = exp(x)/zmesh;
         sqr[i] = sqrt(r[i]);
-        r2[i] = r[i] * r[i];
+        r2[i] = r[i]*r[i];
     }
-    printf( " radial grid information:\n");
+    printf( " === radial grid information ===\n");
     printf( " dx   = %12.6f", dx);
     printf( ", xmin = %12.6f", xmin);
     printf( ", zmesh =%12.6f\n", zmesh);
     printf( " mesh = %5d", mesh);
     printf( ", r(0) = %12.6f",  r[0]);
     printf( ", r(mesh) = %12.6f\n", r[mesh]);
-    return; 
-} /* do_mesh */
+    free(r2);
+    free(sqr);
+    return;
+}
 
 /* initialize the potential */
 void init_pot(float zeta, int mesh, float *r, float *v_pot){
@@ -230,6 +205,27 @@ float solve_sheq(int n, int l, float zeta, int mesh,
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#ifdef __EMSCRIPTEN__
+    EMSCRIPTEN_KEEPALIVE
+#endif
+int user_input(float zeta, int n, int l, float* r){
+    /* initialize */
+    int mesh;
+    float zmesh, xmin, dx, rmax, e;
+    zmesh = zeta;
+    xmin = -8.;
+    dx = 0.01;
+    rmax = 100.;
+    mesh = (int)((log(zmesh*rmax)-xmin)/dx);
+    printf("\n === user_input ===\n");
+    printf(" n = %d, l = %d, zeta = %12.6f\n\n", n, l, zeta);
+    printf("r[0]=%f\n",r[0]);
+    do_mesh(zeta, xmin, dx, rmax, r);
+    printf("r[0]=%f\n",r[0]);
+    printf("user_input() end\n");
+    return 1;
+}
 
 #ifdef __EMSCRIPTEN__
     EMSCRIPTEN_KEEPALIVE
