@@ -1,4 +1,4 @@
-/* wavefunction.c++
+/* hydrogen_radial.cpp
    Find a solution with given N, L for an hydrogenic atom
    solving the radial Schroedinger equation by Numerov method
    Atomic (Ry) units
@@ -17,6 +17,10 @@
 #define ABS(a)	   (((a) < 0) ? -(a) : (a))
 #define MIN(a,b)   (((a) < (b)) ? (a) : (b))
 #define MAX(a,b)   (((a) > (b)) ? (a) : (b))
+
+int main(){
+    return 0;
+}
 
 void do_mesh(float zeta, float xmin, float dx, float rmax, float* r){
     float zmesh = zeta;
@@ -209,6 +213,22 @@ extern "C" {
 #ifdef __EMSCRIPTEN__
     EMSCRIPTEN_KEEPALIVE
 #endif
+float* allocate_memory(int buffer_size){
+    return reinterpret_cast<float*>(malloc(buffer_size * sizeof(float)));
+}
+
+#ifdef __EMSCRIPTEN__
+    EMSCRIPTEN_KEEPALIVE
+#endif
+void solve_test(float* result, int buffer_size){
+    for(int i=0;i<buffer_size;++i){
+        result[i]=i;
+    }
+}
+
+#ifdef __EMSCRIPTEN__
+    EMSCRIPTEN_KEEPALIVE
+#endif
 int user_input(float zeta, int n, int l, float* r){
     /* initialize */
     int mesh;
@@ -221,8 +241,10 @@ int user_input(float zeta, int n, int l, float* r){
     printf("\n === user_input ===\n");
     printf(" n = %d, l = %d, zeta = %12.6f\n\n", n, l, zeta);
     printf("r[0]=%f\n",r[0]);
+    printf("r[mesh]=%f\n",r[mesh]);
     do_mesh(zeta, xmin, dx, rmax, r);
     printf("r[0]=%f\n",r[0]);
+    printf("r[mesh]=%f\n",r[mesh]);
     printf("user_input() end\n");
     return 1;
 }

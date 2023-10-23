@@ -32,3 +32,32 @@ cp *.js *.wasm ../frontend
 ```js
 const arrayPointer = Module._malloc((arrayLength * bytesPerElement));
 ```
+
+<!--## uWebSockets
+
+GitHub repository: https://github.com/uNetworking/uWebSockets.git.
+
+User manual: https://github.com/uNetworking/uWebSockets/blob/master/misc/READMORE.md
+
+```bash
+git clone --recurse-submodules https://github.com/uNetworking/uWebSockets.git
+
+cd uWebSockets
+
+# Update compiler version on Mac
+softwareupdate -l
+sudo softwareupdate -i 'Command Line Tools for Xcode-15.0' -R
+gcc --version # Apple clang 15.0.0
+
+# Build example files (examples/*.cpp)
+sudo make
+# Built Http3Server, Broadcast, HelloWorld, Crc32, ServerName, EchoServer, BroadcastingEchoServer, UpgradeSync, UpgradeAsync
+
+make install # Install uWebSockets source files in /usr/local/include
+```
+
+###  Compile a HelloWorld example
+```bash
+# With websocket code in a cpp file only
+g++ -march=native -O3 -Wpedantic -Wall -Wextra -Wsign-conversion -Wconversion -std=c++20 -IuWebSockets/src -IuWebSockets/uSockets/src -flto websocket_server.cpp uWebSockets/uSockets/*.o -lz -o HelloWorld
+``` -->

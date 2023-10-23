@@ -27,7 +27,7 @@ const userInput = (zeta = 1.1, n = 2, l = 1) => {
     const mesh = Math.floor(((Math.log(zmesh*rmax)-xmin)/dx));
     console.log("userInput() mesh = ", mesh);
 
-    // Allocate memory
+    // Allocate memory, send data to wasm
     const bytesPerElement = Module.HEAPF32.BYTES_PER_ELEMENT // each element is a float
     const rLength = mesh + 1; // array length
     const r = new Array(rLength).fill(-1.1);
@@ -39,8 +39,22 @@ const userInput = (zeta = 1.1, n = 2, l = 1) => {
         ['number', 'number', 'number', 'number'],
         [zeta, n, l, rPointer]
     )
-
     console.log(r, rPointer, rPointerUpdated);
-
     Module._free(rPointer)
+
+    // Allocate memory in cpp module and get results back to js (here)
+    const bufferSize = 100000;
+    const arrayPointer = Module.ccall('allocate_memory',
+        'number',
+        ['number'],
+        [bufferSize]
+    )
+    Module.ccall('solve_test',
+        'null',
+        ['number', 'number'],
+        [arrayPointer, bufferSize]
+    )
+    const array = new Float32Array(Module.HEAPF32.buffer, arrayPointer, bufferSize);
+    console.log(array);
+    Module._free(arrayPointer);
 }

@@ -4313,13 +4313,15 @@ var asm = createWasm();
 /** @type {function(...*):?} */
 var ___wasm_call_ctors = createExportWrapper("__wasm_call_ctors");
 /** @type {function(...*):?} */
-var _user_input = Module["_user_input"] = createExportWrapper("user_input");
-/** @type {function(...*):?} */
 var _malloc = Module["_malloc"] = createExportWrapper("malloc");
 /** @type {function(...*):?} */
 var _free = Module["_free"] = createExportWrapper("free");
 /** @type {function(...*):?} */
-var _user_input_2 = Module["_user_input_2"] = createExportWrapper("user_input_2");
+var _allocate_memory = Module["_allocate_memory"] = createExportWrapper("allocate_memory");
+/** @type {function(...*):?} */
+var _solve_test = Module["_solve_test"] = createExportWrapper("solve_test");
+/** @type {function(...*):?} */
+var _user_input = Module["_user_input"] = createExportWrapper("user_input");
 /** @type {function(...*):?} */
 var _solve_radial = Module["_solve_radial"] = createExportWrapper("solve_radial");
 /** @type {function(...*):?} */
