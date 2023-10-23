@@ -5,7 +5,7 @@
    Source written in C: https://www.fisica.uniud.it/~giannozz/Didattica/MQ/Software/C/hydrogen_radial.c
 */
 #include <cstdio>
-// #include <cmath>
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include "hydrogen_radial.h"
@@ -19,19 +19,28 @@
 #define MAX(a,b)   (((a) > (b)) ? (a) : (b))
 
 int main(){
+    int n, l, mesh;
+    double zeta, zmesh, xmin, dx, rmax;
+    double *r, *pot, *radial;
+    n = 2; l = 1; zeta = 1.;
+    zmesh = zeta;
+    xmin = -8.;
+    dx = .01;
+    rmax = 100.;
+    mesh = (int)((log(zmesh*rmax)-xmin)/dx);
+    r = (double*)malloc((mesh+1)*sizeof(double));
+    pot = (double*)malloc((mesh+1)*sizeof(double));
+    radial = (double*)malloc((mesh+1)*sizeof(double));
+    solve_radial(n, l, zeta, r, pot, radial);
+    free(r); free(pot); free(radial);
     return 0;
 }
 
-void do_mesh(float zeta, float xmin, float dx, float rmax, float* r){
-    float zmesh = zeta;
-    int mesh = (int)((log(zmesh*rmax)-xmin)/dx);
-    float *r2, *sqr;
-    r2 = (float*)malloc((mesh+1)*sizeof(float));
-    sqr = (float*)malloc((mesh+1)*sizeof(float));
-    int i;
-    float x;
+/* initialize logarithmic mesh */
+void do_mesh(int mesh, double zmesh, double xmin, double dx, double rmax, double* r, double* sqr, double* r2){
+    double x;
     /* initialize radial grid */
-    for(i = 0; i <= mesh; ++i){
+    for(int i = 0; i <= mesh; ++i){
         x = xmin+dx*i;
         r[i] = exp(x)/zmesh;
         sqr[i] = sqrt(r[i]);
@@ -44,13 +53,11 @@ void do_mesh(float zeta, float xmin, float dx, float rmax, float* r){
     printf( " mesh = %5d", mesh);
     printf( ", r(0) = %12.6f",  r[0]);
     printf( ", r(mesh) = %12.6f\n", r[mesh]);
-    free(r2);
-    free(sqr);
     return;
 }
 
 /* initialize the potential */
-void init_pot(float zeta, int mesh, float *r, float *v_pot){
+void init_pot(double zeta, int mesh, double *r, double *vpot){
     /* Local variables */
     int i;
     FILE *out;
@@ -58,8 +65,8 @@ void init_pot(float zeta, int mesh, float *r, float *v_pot){
     out = fopen("pot.out","w");
     fprintf(out, "#       r             V(r)\n");
     for (i = 0; i <= mesh; ++i) {
-	    v_pot[i] = -2 * zeta / r[i];
-	    fprintf(out, "%16.8e %16.8e\n", r[i], v_pot[i]);
+	    vpot[i] = -2 * zeta / r[i];
+	    fprintf(out, "%16.8e %16.8e\n", r[i], vpot[i]);
     }
     fclose(out);
     return;
@@ -67,32 +74,30 @@ void init_pot(float zeta, int mesh, float *r, float *v_pot){
 
 /* solve the schroedinger equation in radial coordinates on a 
 logarithmic grid by Numerov method - atomic (Ry) units */
-float solve_sheq(int n, int l, float zeta, int mesh, 
-                    float dx, float *r, float *sqr,
-                    float *r2, float *v_pot, float *y){
-
-
+ double solve_sheq(int n, int l, double zeta, int mesh,
+                    double dx, double *r, double *sqr,
+                    double *r2, double *vpot, double *y){
     /* Local variables */
-    const float eps=1e-10;
+    const double eps=1e-10;
     const int n_iter=100;
     int i, j;
-    float e, de, fac;
+    double e, de, fac;
     int icl, kkk;
-    float x2l2, elw, eup, ddx12, norm;
+    double x2l2, elw, eup, ddx12, norm;
     int nodes;
-    float sqlhf, ycusp, dfcusp;
+    double sqlhf, ycusp, dfcusp;
     int ncross;
-    float *f;
+    double *f;
 
     ddx12 = dx * dx / 12.;
     /* Computing 2nd power */
     sqlhf = (l + 0.5) * (l + 0.5);
-    x2l2 = (float) (2*l+ 2);
+    x2l2 = (double) (2*l+ 2);
     /* set (very rough) initial lower and upper bounds to the eigenvalue */
-    eup = v_pot[mesh];
+    eup = vpot[mesh];
     elw = eup;
     for (i = 0; i <= mesh; ++i) {
-        elw = MIN ( elw, sqlhf / r2[i] + v_pot[i] );
+        elw = MIN ( elw, sqlhf / r2[i] + vpot[i] );
     }
     if (eup - elw < eps) {
       fprintf (stderr, "%25.16e %25.16e\n", eup, elw);
@@ -100,7 +105,7 @@ float solve_sheq(int n, int l, float zeta, int mesh,
       exit(1);
     }
     e = (elw + eup) * .5;
-    f = (float *) malloc( (mesh+1) * sizeof(float) );
+    f = (double *) malloc( (mesh+1) * sizeof(double) );
     /* start loop on energy */
     de= 1e+10; /* any number larger than eps */
     for ( kkk = 0; kkk < n_iter && ABS(de) > eps ; ++kkk ) {
@@ -109,9 +114,9 @@ float solve_sheq(int n, int l, float zeta, int mesh,
         /* f < 0 (approximately) means classically allowed   region */
         /* f > 0         "         "        "      forbidden   " */
         icl = -1;
-        f[0] = ddx12 * (sqlhf + r2[0] * (v_pot[0] - e));
+        f[0] = ddx12 * (sqlhf + r2[0] * (vpot[0] - e));
         for (i = 1; i <= mesh; ++i) {
-	        f[i] = ddx12 * (sqlhf + r2[i] * (v_pot[i] - e));
+	        f[i] = ddx12 * (sqlhf + r2[i] * (vpot[i] - e));
             /* beware: if f(i) is exactly zero the change of sign is not observed */
             /* the following line is a trick to prevent missing a change of sign */
             /* in this unlikely but not impossible case: */
@@ -213,14 +218,14 @@ extern "C" {
 #ifdef __EMSCRIPTEN__
     EMSCRIPTEN_KEEPALIVE
 #endif
-float* allocate_memory(int buffer_size){
-    return reinterpret_cast<float*>(malloc(buffer_size * sizeof(float)));
+double* allocate_memory(int buffer_size){
+    return reinterpret_cast<double*>(malloc(buffer_size*sizeof(double)));
 }
 
 #ifdef __EMSCRIPTEN__
     EMSCRIPTEN_KEEPALIVE
 #endif
-void solve_test(float* result, int buffer_size){
+void solve_test(double* result, int buffer_size){
     for(int i=0;i<buffer_size;++i){
         result[i]=i;
     }
@@ -229,31 +234,29 @@ void solve_test(float* result, int buffer_size){
 #ifdef __EMSCRIPTEN__
     EMSCRIPTEN_KEEPALIVE
 #endif
-int user_input(float zeta, int n, int l, float* r){
-    /* initialize */
+double solve_radial(int n, int l, double zeta, double* r, double* pot, double* radial){
+    std::cout<<"n="<<n<<", l="<<l<<", zeta="<<zeta<<std::endl;
     int mesh;
-    float zmesh, xmin, dx, rmax, e;
+    double zmesh, xmin, dx, rmax, eigen;
+    double *r2, *sqr, *y;
     zmesh = zeta;
     xmin = -8.;
-    dx = 0.01;
+    dx = .01;
     rmax = 100.;
     mesh = (int)((log(zmesh*rmax)-xmin)/dx);
-    printf("\n === user_input ===\n");
-    printf(" n = %d, l = %d, zeta = %12.6f\n\n", n, l, zeta);
-    printf("r[0]=%f\n",r[0]);
-    printf("r[mesh]=%f\n",r[mesh]);
-    do_mesh(zeta, xmin, dx, rmax, r);
-    printf("r[0]=%f\n",r[0]);
-    printf("r[mesh]=%f\n",r[mesh]);
-    printf("user_input() end\n");
-    return 1;
-}
-
-#ifdef __EMSCRIPTEN__
-    EMSCRIPTEN_KEEPALIVE
-#endif
-void solve_radial(int n, int l, float zeta){
-    std::cout<<"n="<<n<<", l="<<l<<", zeta="<<zeta<<std::endl;
+    sqr = (double*)malloc((mesh+1)*sizeof(double));
+    r2 = (double*)malloc((mesh+1)*sizeof(double));
+    y = (double*)malloc((mesh+1)*sizeof(double));
+    do_mesh(mesh, zmesh, xmin, dx, rmax, r, sqr, r2); // update r, sqr, r2
+    init_pot(zeta, mesh, r, pot); // update pot
+    eigen = solve_sheq(n, l, zeta, mesh, dx, r, sqr, r2, pot, y); // update y
+    printf("eigenvalue = %16.8e, eig*(n/zeta)^2 = %16.8e\n", eigen, eigen*(n*n/zeta/zeta));
+    for(int i=0;i<=mesh;++i){
+        radial[i] = y[i]/sqr[i];
+        pot[i] += l*(l+1)/r2[i]; // Veff = vpot[i] + l*(l+1)/r2[i]
+    }
+    free(sqr); free(r2); free(y);
+    return eigen;
 }
 
 #ifdef __cplusplus

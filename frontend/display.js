@@ -1,60 +1,45 @@
 document.addEventListener('click', (event) =>
 {
     console.log('click')
-    userInput()
+    solveRadial()
 })
 
 const test = () => {
     console.log("onLoad test")
 }
 
-// Interact with hydrogen_radial.cpp
-const solveRadial = () => {
-    const n = 2
-    const l = 1
-    const zeta = 1.1
-    Module.ccall('solve_radial',
-        'null',
-        ['number', 'number', 'number'],
-        [n, l, zeta]
-        )
-}
-
-const userInput = (zeta = 1.1, n = 2, l = 1) => {
-    // const zeta = 1.1, n = 2, l = 1
+const solveRadial = (zeta = 1, n = 2, l = 1) => {
     const xmin = -8., dx = .01, rmax = 100.
     const zmesh = zeta
-    const mesh = Math.floor(((Math.log(zmesh*rmax)-xmin)/dx));
-    console.log("userInput() mesh = ", mesh);
+    const mesh = Math.floor(((Math.log(zmesh*rmax)-xmin)/dx))
+    const gridSize = mesh+1 // size of radial grid
 
-    // Allocate memory, send data to wasm
-    const bytesPerElement = Module.HEAPF32.BYTES_PER_ELEMENT // each element is a float
-    const rLength = mesh + 1; // array length
-    const r = new Array(rLength).fill(-1.1);
-    console.log("memory check",rLength, bytesPerElement, rLength*bytesPerElement)
-    const rPointer = Module._malloc((rLength * bytesPerElement))
-    Module.HEAPF32.set(r, (rPointer/bytesPerElement));
-    const rPointerUpdated = Module.ccall('user_input',
-        'number',
-        ['number', 'number', 'number', 'number'],
-        [zeta, n, l, rPointer]
+    // Allocate memory for data to be received
+    const rPointer = Module.ccall('allocate_memory', 'number', ['number'], [gridSize])
+    const potPointer = Module.ccall('allocate_memory', 'number', ['number'], [gridSize])
+    const radialPointer = Module.ccall('allocate_memory', 'number', ['number'], [gridSize])
+
+    // Call solve_radial() in cpp, void solve_radial(int n, int l, double zeta, double* r, double* pot, double* radial)
+    const eigen = Module.ccall('solve_radial',
+                'number',
+                ['number', 'number', 'number', 'number', 'number', 'number'],
+                [n, l, zeta, rPointer, potPointer, radialPointer]
     )
-    console.log(r, rPointer, rPointerUpdated);
+
+    // Convert received pointer to array
+    const r = new Float64Array(Module.HEAPF64.buffer, rPointer, gridSize)
+    const pot = new Float64Array(Module.HEAPF64.buffer, potPointer, gridSize)
+    const radial = new Float64Array(Module.HEAPF64.buffer, radialPointer, gridSize)
+
+    // Check results
+    const precision = 2
+    console.log("r[0] = ", r[0].toFixed(precision), ", r[mesh] = ", r[mesh].toFixed(precision))
+    console.log("pot[0] = ", pot[0].toExponential(precision), ", pot[500] = ", pot[500].toExponential(precision))
+    console.log("radial[0] = ", radial[0].toExponential(precision), ", radial[500] = ", radial[500].toExponential(precision))
+    console.log("eigen = ", eigen.toExponential(precision))
+
+    // Free memory
     Module._free(rPointer)
-
-    // Allocate memory in cpp module and get results back to js (here)
-    const bufferSize = 100000;
-    const arrayPointer = Module.ccall('allocate_memory',
-        'number',
-        ['number'],
-        [bufferSize]
-    )
-    Module.ccall('solve_test',
-        'null',
-        ['number', 'number'],
-        [arrayPointer, bufferSize]
-    )
-    const array = new Float32Array(Module.HEAPF32.buffer, arrayPointer, bufferSize);
-    console.log(array);
-    Module._free(arrayPointer);
+    Module._free(potPointer)
+    Module._free(radialPointer)
 }
