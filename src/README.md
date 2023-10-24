@@ -2,11 +2,11 @@
 ## Schrödinger's equation
 $\Psi_{n,l,m}(r, \theta, \psi) = R_{n,l}(r) Y_{l,m}(\theta, \psi)$
 
-### Process of solving the equation
-1. Frontend gets user inputs: $n, l, m$, and passes $n, l$ to backend.
-2. Backend solves for $R(r)$, with $n, l$.
-3. Frontend solves for $Y$, with $l, m$.
-4. Compute $\Psi$ based on $R$ and $Y$.
+### Process Overview
+1. Three.js gets user inputs: $n, l, m$, and passes $n, l$ to a C++ module.
+2. C++ module solves for $R(r)$, with $n, l$.
+3. Three.js solves for $Y$, with $l, m$.
+4. Three.js displays $\Psi=R Y$.
 
 ## Compiling C++ file
 Compile c++ file to test if it has any compile errors before compiling with `$emcc` (Emscripten):

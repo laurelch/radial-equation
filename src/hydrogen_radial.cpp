@@ -31,8 +31,10 @@ int main(){
     r = (double*)malloc((mesh+1)*sizeof(double));
     pot = (double*)malloc((mesh+1)*sizeof(double));
     radial = (double*)malloc((mesh+1)*sizeof(double));
+    printf( " === sample in main() ===\n");
     solve_radial(n, l, zeta, r, pot, radial);
     free(r); free(pot); free(radial);
+    printf( " === main() ended ===\n\n");
     return 0;
 }
 
@@ -235,7 +237,6 @@ void solve_test(double* result, int buffer_size){
     EMSCRIPTEN_KEEPALIVE
 #endif
 double solve_radial(int n, int l, double zeta, double* r, double* pot, double* radial){
-    std::cout<<"n="<<n<<", l="<<l<<", zeta="<<zeta<<std::endl;
     int mesh;
     double zmesh, xmin, dx, rmax, eigen;
     double *r2, *sqr, *y;
