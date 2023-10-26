@@ -14,7 +14,7 @@ Compile c++ file to test if it has any compile errors before compiling with `$em
 g++ hydrogen_radial.cpp -o test
 ```
 
-Set environment variables for `$emcc` when open a new terminal window:
+Set environment variables for `$emcc` when opening a new terminal window:
 ```bash
 source /usr/local/include/emsdk/emsdk_env.sh
 ```
