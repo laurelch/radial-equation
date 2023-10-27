@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { Lut } from 'three/addons/math/Lut.js'
 import { MathUtils } from 'three'
 import gsap from 'gsap'
 import * as dat from 'lil-gui'
@@ -13,10 +14,10 @@ const sizes = {
     width: window.innerWidth,
     height: window.innerHeight
 }
-const camera = new THREE.PerspectiveCamera(75, sizes.width/sizes.height, 0.01, 200)
-camera.position.set(40, 40, 60)
+const camera = new THREE.PerspectiveCamera(50, sizes.width/sizes.height, 0.1, 2000)
+camera.position.set(160, 160, 240)
 scene.add(camera)
-const axesHelper = new THREE.AxesHelper(100)
+const axesHelper = new THREE.AxesHelper(400)
 scene.add(axesHelper)
 const controls = new OrbitControls(camera, canvas)
 controls.enableDamping = true
@@ -30,6 +31,14 @@ const tick = () => {
     window.requestAnimationFrame(tick)
 }
 tick()
+
+const displayColor = false
+const printColors = (colors) => {
+    const length = Math.floor(colors.length/3)
+    for(let i=0; i<length; ++i){
+        console.log(colors[3*i], colors[3*i+1], colors[3*i+2])
+    }
+}
 
 let pointsGeometry = new THREE.BufferGeometry()
 let points = new THREE.Points()
@@ -67,11 +76,12 @@ window.addEventListener('dblclick', () => {
 
 /**
  * Solves the radial part, R(r), of the Schroedinger equation.
- * @param {Number} zeta 
- * @param {Number} n 
- * @param {Number} l 
+ * 
+ * @param {number} zeta - Number of atomic charge.
+ * @param {number} n - Principal quantum number.
+ * @param {number} l - Orbital quantum number.
  */
-function solveRadial(zeta, n, l) {
+function solveRadial(zeta, n, l){
     console.log("zeta = ",zeta, "n = ", n, "l = ",l)
     const xmin = -8., dx = .01, rmax = 100.
     const zmesh = zeta
@@ -102,94 +112,163 @@ function solveRadial(zeta, n, l) {
     console.log("radial[0] = ", radial[0].toExponential(precision), ", radial[500] = ", radial[500].toExponential(precision))
     console.log("eigen = ", eigen.toExponential(precision))
 
+    // Find min and max in radial
+    let radialMin = radial[0], radialMax = radial[0]
+    for(let i=0; i<radial.length; ++i){
+        if(radial[i]<radialMin){
+            radialMin = radial[i]
+        }else if(radial[i]>radialMax){
+            radialMax = radial[i]
+        }
+    }
     // Free memory
     Module._free(rPointer)
     Module._free(potPointer)
     Module._free(radialPointer)
 
-    return [r, radial]
+    console.log('r.length, min, max', r.length, radialMin, radialMax)
+    return [r, radial, radialMin, radialMax]
+}
+
+function applyColor(radial, min, max, style='rainbow'){
+    const length = radial.length
+    const colors = new Float32Array(length*3)
+    const lut = new Lut(style) // color look up table
+    lut.minV = min
+    lut.maxV = max
+    const color = new THREE.Color()
+    for(let i=0; i<length; ++i){
+        color.copy(lut.getColor(radial[i])).convertSRGBToLinear()
+        colors.set([color.r, color.g, color.b], i*3)
+        // console.log('color.rgb',color.r, color.g, color.b)
+    }
+    return colors
 }
 
 /**
- * Obtains the radial equation R(r) points in 3D space.
- * @param {Array} r 
- * @param {Array} radial - R(r)
- * @param {Number} V - Number of vertical discretizations
- * @param {Number} H - Number of horizontal discretizations
- * @param {Number} layer - Number of layers displayed in the radial equation
- * @returns flatten positions of the points
+ * Compute point positions in a 3D sphere using a specified style.
+ * 
+ * @param {Float64Array} r - Array of the radius of the sphere.
+ * @param {Float64Array} radial - Array of the radial equation value with respect to radius, i.e. R(r).
+ * @param {number} points - The number of points (optional, default is 200).
+ * @param {number} H - The horizontal resolution (optional, default is 8).
+ * @param {number} V - The vertical resolution (optional, default is 16).
+ * @param {number} layer - The number of layers (optional, default is 100).
+ * @param {string} style - The style to use (optional, default is 'layer').
+ * @returns {Float32Array} - A Float32Array containing the positions of the generated points (size: points * 3).
  */
-function getRadialInSpace(r, radial, H=8, V=16, layer=100) {
-    const pointsPerLayer = V*H
-    const points = pointsPerLayer*layer
-    const positions = new Float32Array(points*3)
-    const phiUnit = MathUtils.degToRad(180/H) // polar angle in radians from the y (up) axis
-    const thetaUnit = MathUtils.degToRad(360/V) // equator angle in radians around the y (up) axis
-    const partialRadius = new Float32Array(layer)
-    const partialRadial = new Float32Array(layer)
-    const getPartialRadial = () => {
-        const length = radial.length
-        const stepSize = Math.floor(length/layer)
-        for(let i=0; i<layer; ++i){
-            const index = i*stepSize
-            partialRadius[i] = r[index]
-            partialRadial[i] = radial[index]
-        }
+function generatePointsInSphere(r, radial, radialColor=null, points=200, H=16, V=32, layer=30, style='layer'){
+    if(style==='layer'){
+        const pointsPerLayer = V*H
+        points = pointsPerLayer*(layer+1)
     }
-    getPartialRadial()
-    const addRadialLayer = (i) => {
-        const layerRadius = partialRadius[i]
-        const l = i*V*H // starting position of l-th layer in total positions
-        let phi, theta, k
-        for(let p=0; p<H; ++p){
-            phi = p*phiUnit
-            for(let t=0; t<V; ++t){
-                theta = t*thetaUnit
-                k = p*V+t // k-th point in current layer
-                const start = 3*(l+k) // starting position of current point
-                const pos = new THREE.Vector3().setFromSphericalCoords(layerRadius, phi, theta)
+    const positions = new Float32Array(points*3)
+    const colors = new Float32Array(points*3)
+    const partialLayer = layer+1
+    const partialColor = new Float32Array(partialLayer*3)
+    const length = r.length
+    const stepSize = Math.floor(length/layer)
+    if(style==='layer'){
+        const phiUnit = MathUtils.degToRad(180/H) // polar angle in radians from the y (up) axis
+        const thetaUnit = MathUtils.degToRad(360/V) // equator angle in radians around the y (up) axis
+        const partialRadius = new Float32Array(partialLayer)
+        const partialRadial = new Float32Array(partialLayer)
+        const getPartial = () => {
+            console.log('stepSize = ', stepSize)
+            for(let i=0; i<layer; ++i){
+                let index = i*stepSize
+                partialRadius[i] = r[index]
+                partialRadial[i] = radial[index]
+                if(displayColor){
+                    for(let j=0; j<3; ++j){
+                        partialColor[3*i+j] = radialColor[3*index+j]
+                        // partialColor[3*i+j] = 1 // white
+                    }
+                }
+            }
+            partialRadius[partialLayer-1] = r[length-1]
+            partialRadial[partialLayer-1] = radial[length-1]
+            if(displayColor){
                 for(let j=0; j<3; ++j){
-                    positions[start+j] = pos.getComponent(j)
+                    partialColor[3*(partialLayer-1)+j] = radialColor[3*(length-3)+j]
+                    // partialColor[3*(partialLayer-1)+j] = 1 // white
                 }
             }
         }
+        getPartial()
+        // console.log('partialRadius', partialRadius)
+        const addRadialLayer = (i) => {
+            const layerRadius = partialRadius[i]
+            const l = i*V*H // starting position of l-th layer in total positions
+            let phi, theta, k
+            for(let p=0; p<H; ++p){
+                phi = p*phiUnit
+                for(let t=0; t<V; ++t){
+                    theta = t*thetaUnit
+                    k = p*V+t // k-th point in current layer
+                    const start = 3*(l+k) // starting position of current point
+                    const pos = new THREE.Vector3().setFromSphericalCoords(layerRadius, phi, theta)
+                    for(let j=0; j<3; ++j){
+                        positions[start+j] = pos.getComponent(j)
+                        if(displayColor) colors[start+j] = partialColor[3*i+j]
+                    }
+                }
+            }
+        }
+        for (let i=0; i<partialLayer; ++i){
+            addRadialLayer(i)
+        }
     }
-    for (let i=0; i<layer; ++i){
-        addRadialLayer(i)
+    // printColors(partialColor)
+    if(displayColor){
+        return [positions, colors]
     }
     return positions
 }
 
 /**
- * Creates point cloud.
- * @param {Array} positions 
- * @param {Number} pointSize 
- * @returns Points geometry
+ * Create a bounding box with given size.
+ * 
+ * @param {number} size - Size of the box side.
+ * @returns {THREE.BoxHelper} - A THREE.BoxHelper object for the bounding box.
  */
-function createPointCloud(positions, pointSize=0.05){
-    console.log(positions.slice(0,9))
-    pointsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    pointsGeometry.computeBoundingBox()
-    const material = new THREE.PointsMaterial({size:pointSize})
-    points = new THREE.Points(pointsGeometry, material)
-    scene.add(points)
-}
-
-function updatePointCloud(positions, pointSize=0.05){
-    console.log(positions.slice(0,9))
-    pointsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    const material = new THREE.PointsMaterial({size:pointSize})
-    points = new THREE.Points(pointsGeometry, material)
+function createBoundingBox(size=200){
+    const geometry = new THREE.BoxGeometry(size, size, size)
+    const wireframe = new THREE.WireframeGeometry(geometry)
+    const line = new THREE.LineSegments(wireframe)
+    line.material.depthTest = false
+    line.material.opacity = 0.25
+    line.material.transparent = true
+    return new THREE.BoxHelper(line)
 }
 
 /**
- * Initialize UI with lil.gui (dat.gui).
- * @param {*} zeta 
- * @param {*} n 
- * @param {*} l 
- * @returns gui
+ * Create point cloud as a THREE.Points object based on given positions.
+ * 
+ * @param {Float32Array} positions - A Float32Array containing the positions of the generated points (size: points * 3).
+ * @param {number} pointSize - Size of the points in pixels (optional, default is 0.05).
+ * @returns {THREE.Points} - A THREE.Points object for displaying points.
  */
-function initUI(zeta=1, n=1, l=0) {
+function createPointCloud(positions, colors=null, pointSize=0.05){
+    pointsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+    let material = new THREE.PointsMaterial({size:pointSize})
+    if(colors != null){
+        pointsGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+        material = new THREE.PointsMaterial({size:pointSize, vertexColors:true})
+    }
+    pointsGeometry.computeBoundingBox()
+    return new THREE.Points(pointsGeometry, material)
+}
+
+/**
+ * Initialize UI with lil-gui (dat.gui).
+ * 
+ * @param {number} zeta - Number of atomic charge.
+ * @param {number} n - Principal quantum number.
+ * @param {number} l - Orbital quantum number.
+ * @returns {dat.GUI} GUI generated by lil-gui (dat.gui)
+ */
+function initUI(zeta=2, n=1, l=0){
     const gui = new dat.GUI({width: 400})
     // Initialize user inputs
     const userInput = {
@@ -198,20 +277,38 @@ function initUI(zeta=1, n=1, l=0) {
         l: l
     }
     const nMax = 5
-    let [r, radial] = solveRadial(zeta, n, l)
-    let positions = getRadialInSpace(r, radial)
-    createPointCloud(positions)
+    let r, radial, radialMin, radialMax
+    [r, radial, radialMin, radialMax] = solveRadial(zeta, n, l)
+    if(displayColor){
+        let radialColor = applyColor(radial, radialMin, radialMax)
+        console.log('radialColor, ',radialColor)
+        let [positions, colors] = generatePointsInSphere(r, radial, radialColor)
+        points = createPointCloud(positions, colors)
+    }else{
+        let positions = generatePointsInSphere(r, radial)
+        points = createPointCloud(positions)
+    }
+    scene.add(points)
+    const boundingBox = createBoundingBox()
+    scene.add(boundingBox)
     const verifyUserInput = (zeta, n, l) => {
         if(n <= l){
             console.log('invalid')
         }else{
-            [r, radial] = solveRadial(zeta, n, l)
-            positions = getRadialInSpace(r, radial)
-            updatePointCloud(positions)
+            let [r, radial, radialMin, radialMax] = solveRadial(zeta, n, l)
+            console.log('r.length, min, max', r.length, radialMin, radialMax)
+            if(displayColor){
+                let radialColor = applyColor(radial, radialMin, radialMax)
+                let [positions, colors] = generatePointsInSphere(r, radial, radialColor)
+                points = createPointCloud(positions, colors)
+            }else{
+                let positions = generatePointsInSphere(r, radial)
+                points = createPointCloud(positions)
+            }
             renderer.render(scene, camera)
         }
     }
-    gui.add(userInput, 'zeta', 1, 10, 0.01).name('Atomic Charge (zeta)').onChange(zeta => {
+    gui.add(userInput, 'zeta', 1, 10, 0.1).name('Atomic Charge (zeta)').onChange(zeta => {
             verifyUserInput(zeta, userInput.n, userInput.l)})
     gui.add(userInput, 'n', 1, nMax, 1).name('Principal Quantum Number (n)').onChange(n => {
             verifyUserInput(userInput.zeta, n, userInput.l)})
