@@ -1,4 +1,7 @@
 # README for hydrogen_radial.c and quantum mechanics
+
+Source: [hydrogen_radial.c](https://www.fisica.uniud.it/~giannozz/Didattica/MQ/Software/C/hydrogen_radial.c)
+
 ## 1. Definitions
 
 Initialize with `xmin`, `dx`, `rmax`, `zeta/zmesh`.

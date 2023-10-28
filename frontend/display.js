@@ -15,7 +15,7 @@ const sizes = {
     height: window.innerHeight
 }
 const camera = new THREE.PerspectiveCamera(50, sizes.width/sizes.height, 0.1, 2000)
-camera.position.set(160, 160, 240)
+camera.position.set(200, 200, 300)
 scene.add(camera)
 const axesHelper = new THREE.AxesHelper(400)
 scene.add(axesHelper)
@@ -32,14 +32,7 @@ const tick = () => {
 }
 tick()
 
-const displayColor = false
-const printColors = (colors) => {
-    const length = Math.floor(colors.length/3)
-    for(let i=0; i<length; ++i){
-        console.log(colors[3*i], colors[3*i+1], colors[3*i+2])
-    }
-}
-
+const displayColor = true
 let pointsGeometry = new THREE.BufferGeometry()
 let points = new THREE.Points()
 
@@ -134,11 +127,11 @@ function applyColor(radial, min, max, style='rainbow'){
     const length = radial.length
     const colors = new Float32Array(length*3)
     const lut = new Lut(style) // color look up table
-    lut.minV = min
-    lut.maxV = max
+    lut.minV = Math.log(min)
+    lut.maxV = Math.log(max)
     const color = new THREE.Color()
     for(let i=0; i<length; ++i){
-        color.copy(lut.getColor(radial[i])).convertSRGBToLinear()
+        color.copy(lut.getColor(Math.log(radial[i]))).convertSRGBToLinear()
         colors.set([color.r, color.g, color.b], i*3)
         // console.log('color.rgb',color.r, color.g, color.b)
     }
@@ -157,7 +150,7 @@ function applyColor(radial, min, max, style='rainbow'){
  * @param {string} style - The style to use (optional, default is 'layer').
  * @returns {Float32Array} - A Float32Array containing the positions of the generated points (size: points * 3).
  */
-function generatePointsInSphere(r, radial, radialColor=null, points=200, H=16, V=32, layer=30, style='layer'){
+function generatePointsInSphere(r, radial, radialColor=null, points=200, H=16, V=32, layer=40, style='layer'){
     if(style==='layer'){
         const pointsPerLayer = V*H
         points = pointsPerLayer*(layer+1)
@@ -249,7 +242,7 @@ function createBoundingBox(size=200){
  * @param {number} pointSize - Size of the points in pixels (optional, default is 0.05).
  * @returns {THREE.Points} - A THREE.Points object for displaying points.
  */
-function createPointCloud(positions, colors=null, pointSize=0.05){
+function createPointCloud(positions, colors=null, pointSize=2.5){
     pointsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
     let material = new THREE.PointsMaterial({size:pointSize})
     if(colors != null){
@@ -308,7 +301,7 @@ function initUI(zeta=2, n=1, l=0){
             renderer.render(scene, camera)
         }
     }
-    gui.add(userInput, 'zeta', 1, 10, 0.1).name('Atomic Charge (zeta)').onChange(zeta => {
+    gui.add(userInput, 'zeta', 1, 3, 0.1).name('Atomic Charge (zeta)').onChange(zeta => {
             verifyUserInput(zeta, userInput.n, userInput.l)})
     gui.add(userInput, 'n', 1, nMax, 1).name('Principal Quantum Number (n)').onChange(n => {
             verifyUserInput(userInput.zeta, n, userInput.l)})
