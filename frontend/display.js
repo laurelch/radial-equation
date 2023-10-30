@@ -2,7 +2,6 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { Lut } from 'three/addons/math/Lut.js'
 import { MathUtils } from 'three'
-import gsap from 'gsap'
 import * as dat from 'lil-gui'
 
 /**
@@ -119,7 +118,7 @@ function solveRadial(zeta, n, l){
     Module._free(potPointer)
     Module._free(radialPointer)
 
-    console.log('r.length, min, max', r.length, radialMin, radialMax)
+    // console.log('r.length, min, max', r.length, radialMin, radialMax)
     return [r, radial, radialMin, radialMax]
 }
 
@@ -167,7 +166,7 @@ function generatePointsInSphere(r, radial, radialColor=null, points=200, H=16, V
         const partialRadius = new Float32Array(partialLayer)
         const partialRadial = new Float32Array(partialLayer)
         const getPartial = () => {
-            console.log('stepSize = ', stepSize)
+            // console.log('stepSize = ', stepSize)
             for(let i=0; i<layer; ++i){
                 let index = i*stepSize
                 partialRadius[i] = r[index]
@@ -269,12 +268,13 @@ function initUI(zeta=2, n=1, l=0){
         n: n,
         l: l
     }
+
     const nMax = 5
     let r, radial, radialMin, radialMax
     [r, radial, radialMin, radialMax] = solveRadial(zeta, n, l)
     if(displayColor){
         let radialColor = applyColor(radial, radialMin, radialMax)
-        console.log('radialColor, ',radialColor)
+        // console.log('radialColor, ',radialColor)
         let [positions, colors] = generatePointsInSphere(r, radial, radialColor)
         points = createPointCloud(positions, colors)
     }else{

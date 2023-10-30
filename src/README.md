@@ -21,9 +21,14 @@ source /usr/local/include/emsdk/emsdk_env.sh
 
 Compile c++ file to wasm and js, and copy to `frontend` folder:
 ```bash
-emcc hydrogen_radial.cpp -o hydrogen_radial.js -sEXPORTED_FUNCTIONS=_malloc,_free -sEXPORTED_RUNTIME_METHODS=ccall,UTF8ToString
+emcc hydrogen_radial.cpp -o hydrogen_radial.js -sEXPORTED_FUNCTIONS=_malloc,_free,_main -sEXPORTED_RUNTIME_METHODS=ccall,UTF8ToString
 
 cp *.js *.wasm ../frontend
+```
+
+Compile with `-s MODUALRIZE` flag:
+```bash
+emcc hydrogen_radial.cpp -o hydrogen_radial.js -sEXPORTED_FUNCTIONS=_malloc,_free,_main -sEXPORTED_RUNTIME_METHODS=ccall,UTF8ToString -sMODULARIZE
 ```
 
 ## Communication between JS and C++
