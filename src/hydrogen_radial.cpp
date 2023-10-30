@@ -18,6 +18,13 @@
 #define MIN(a,b)   (((a) < (b)) ? (a) : (b))
 #define MAX(a,b)   (((a) > (b)) ? (a) : (b))
 
+#ifdef __EMSCRIPTEN__
+EM_JS(void, module_ready, (), {
+    console.log("cpp - wasm module is ready!");
+    document.dispatchEvent(new Event('wasmReady'));
+});
+#endif
+
 int main(){
     int n, l, mesh;
     double zeta, zmesh, xmin, dx, rmax;
@@ -35,6 +42,9 @@ int main(){
     solve_radial(n, l, zeta, r, pot, radial);
     free(r); free(pot); free(radial);
     printf( " === main() ended ===\n\n");
+    #ifdef __EMSCRIPTEN__
+        module_ready();
+    #endif
     return 0;
 }
 

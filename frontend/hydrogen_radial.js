@@ -962,6 +962,9 @@ function dbg(text) {
 // end include: runtime_debug.js
 // === Body ===
 
+function module_ready() { console.log("cpp - wasm module is ready!"); document.dispatchEvent(new Event('wasmReady')); }
+
+
 // end include: preamble.js
 
   /** @constructor */
@@ -4398,7 +4401,9 @@ var wasmImports = {
   /** @export */
   fd_seek: _fd_seek,
   /** @export */
-  fd_write: _fd_write
+  fd_write: _fd_write,
+  /** @export */
+  module_ready: module_ready
 };
 var wasmExports = createWasm();
 var ___wasm_call_ctors = createExportWrapper('__wasm_call_ctors');
@@ -4419,7 +4424,8 @@ var stackRestore = createExportWrapper('stackRestore');
 var stackAlloc = createExportWrapper('stackAlloc');
 var _emscripten_stack_get_current = () => (_emscripten_stack_get_current = wasmExports['emscripten_stack_get_current'])();
 var dynCall_jiji = Module['dynCall_jiji'] = createExportWrapper('dynCall_jiji');
-
+var ___start_em_js = Module['___start_em_js'] = 77536;
+var ___stop_em_js = Module['___stop_em_js'] = 77638;
 
 // include: postamble.js
 // === Auto-generated postamble setup entry stuff ===

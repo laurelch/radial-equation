@@ -268,6 +268,9 @@ function initUI(zeta=2, n=1, l=0){
         n: n,
         l: l
     }
+    const boundingBox = createBoundingBox()
+    scene.add(boundingBox)
+    renderer.render(scene, camera)
 
     const nMax = 5
     let r, radial, radialMin, radialMax
@@ -282,8 +285,6 @@ function initUI(zeta=2, n=1, l=0){
         points = createPointCloud(positions)
     }
     scene.add(points)
-    const boundingBox = createBoundingBox()
-    scene.add(boundingBox)
     const verifyUserInput = (zeta, n, l) => {
         if(n <= l){
             console.log('invalid')
@@ -310,4 +311,11 @@ function initUI(zeta=2, n=1, l=0){
     return gui
 }
 
-initUI()
+document.addEventListener('wasmReady', () => {
+    console.log('display.js - heard wasmReady event')
+    initUI()
+})
+
+Module['onRuntimeInitialized'] = () => {
+    console.log('display.js - onRuntimeInitialized!')
+}
