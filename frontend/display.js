@@ -32,6 +32,7 @@ const tick = () => {
 tick()
 
 const displayColor = true
+const applyLogToColor = true
 let pointsGeometry = new THREE.BufferGeometry()
 let points = new THREE.Points()
 
@@ -126,13 +127,32 @@ function applyColor(radial, min, max, style='rainbow'){
     const length = radial.length
     const colors = new Float32Array(length*3)
     const lut = new Lut(style) // color look up table
-    lut.minV = Math.log(min)
-    lut.maxV = Math.log(max)
+    let shift = 0
+    if(min<0){
+        shift = Number.EPSILON - min
+        max += shift
+        min += shift
+    }
+    if(applyLogToColor){
+        lut.minV = Math.log(min)
+        lut.maxV = Math.log(max)
+    }else{
+        lut.minV = min
+        lut.maxV = max
+    }
+    console.log('applyColor', min, max)
     const color = new THREE.Color()
     for(let i=0; i<length; ++i){
-        color.copy(lut.getColor(Math.log(radial[i]))).convertSRGBToLinear()
+        const newRadial = radial[i] + shift
+        let lutColor = new THREE.Color()
+        if(applyLogToColor){
+            lutColor = lut.getColor(Math.log(newRadial))
+        }else{
+            lutColor = lut.getColor(newRadial)
+        }
+        // console.log(i, radial[i], newRadial, lutColor)
+        color.copy(lutColor).convertSRGBToLinear()
         colors.set([color.r, color.g, color.b], i*3)
-        // console.log('color.rgb',color.r, color.g, color.b)
     }
     return colors
 }
@@ -273,11 +293,9 @@ function initUI(zeta=2, n=1, l=0){
     renderer.render(scene, camera)
 
     const nMax = 5
-    let r, radial, radialMin, radialMax
-    [r, radial, radialMin, radialMax] = solveRadial(zeta, n, l)
+    let [r, radial, radialMin, radialMax] = solveRadial(zeta, n, l)
     if(displayColor){
         let radialColor = applyColor(radial, radialMin, radialMax)
-        // console.log('radialColor, ',radialColor)
         let [positions, colors] = generatePointsInSphere(r, radial, radialColor)
         points = createPointCloud(positions, colors)
     }else{
@@ -290,7 +308,7 @@ function initUI(zeta=2, n=1, l=0){
             console.log('invalid')
         }else{
             let [r, radial, radialMin, radialMax] = solveRadial(zeta, n, l)
-            console.log('r.length, min, max', r.length, radialMin, radialMax)
+            console.log('r.length, radial.length, min, max', r.length, radial.length, radialMin, radialMax)
             if(displayColor){
                 let radialColor = applyColor(radial, radialMin, radialMax)
                 let [positions, colors] = generatePointsInSphere(r, radial, radialColor)
@@ -302,7 +320,7 @@ function initUI(zeta=2, n=1, l=0){
             renderer.render(scene, camera)
         }
     }
-    gui.add(userInput, 'zeta', 1, 3, 0.1).name('Atomic Charge (zeta)').onChange(zeta => {
+    gui.add(userInput, 'zeta', 1, 10, 0.1).name('Atomic Charge (zeta)').onChange(zeta => {
             verifyUserInput(zeta, userInput.n, userInput.l)})
     gui.add(userInput, 'n', 1, nMax, 1).name('Principal Quantum Number (n)').onChange(n => {
             verifyUserInput(userInput.zeta, n, userInput.l)})
@@ -319,3 +337,6 @@ document.addEventListener('wasmReady', () => {
 Module['onRuntimeInitialized'] = () => {
     console.log('display.js - onRuntimeInitialized!')
 }
+
+// Add when developing with localhost
+// initUI()
