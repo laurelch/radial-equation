@@ -345,5 +345,5 @@ Module['onRuntimeInitialized'] = () => {
     console.log('display.js - onRuntimeInitialized!')
 }
 
-// Add when developing with localhost
+// In dev mode
 // initUI()
