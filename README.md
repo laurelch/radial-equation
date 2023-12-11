@@ -1,9 +1,17 @@
-# README for hydrogen_radial.c and quantum mechanics
+# Interactive Radial Equation
 
-Source: [hydrogen_radial.c](https://www.fisica.uniud.it/~giannozz/Didattica/MQ/Software/C/hydrogen_radial.c)
+This is an interactive visualization of
+[hydrogen_radial.c](https://www.fisica.uniud.it/~giannozz/Didattica/MQ/Software/C/hydrogen_radial.c) with color-mapping using JavaScript, WebAssembly, and Three.js.
 
-## 1. Definitions
+It solves the radial portion of the Schrodinger Equation for Hydrogen atom.
 
+## Demo
+
+![Demo](results/screenshot.png)
+
+## Explanations
+
+### Initialization
 Initialize with `xmin`, `dx`, `rmax`, `zeta/zmesh`.
 
     xmin = -8.;
@@ -25,7 +33,7 @@ Hydrogen atom only has 1 proton, the atomic charge is `e = 1.602e-19`.
     x = xmin + dx * i;
 
 
-## 2. After `Atomic Charge`
+### After `Atomic Charge`
 `r` in `pot.out` and `wfc.out` is the radial distance. When `zmesh = 1, r_0 = 3.35e-4`.
 
     r[i] = exp(x) / zmesh;
@@ -37,7 +45,7 @@ Hydrogen atom only has 1 proton, the atomic charge is `e = 1.602e-19`.
 
 Both `r` and `V(r)` in `pot.out` is determined after getting `Atomic Charge` before entering `n` and `l`.
 
-## 3. After getting quantum numbers `u` and `l`
+### After getting quantum numbers `u` and `l`
 `n` is the principal quantum number that describes the energy level of an electron, where n = 1, 2, 3, and so on. (user input #2)
 
 `l` is the angular momentum quantum number that describes the orbital shape, where l = 0, ..., n-1. (user input #3)
